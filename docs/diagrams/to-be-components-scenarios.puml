@@ -1,0 +1,35 @@
+@startuml to-be-components-scenarios
+!include <C4/C4_Component>
+LAYOUT_LEFT_RIGHT()
+title Тёплый дом — C4 Components: Сценарии
+Container_Boundary(service, "Сценарии — Python / FastAPI") {
+Component(api, "HTTP API", "Python / FastAPI", "Принимает запросы и возвращает ответы.")
+Component(processor, "Управление и выполнение сценариев", "Python", "Сохраняет условия и действия, проверяет устройства; при событии вычисляет условия и запускает действие.")
+Component(consumer, "Потребитель событий", "Python / AMQP", "Принимает TelemetryUpdated.")
+Component(repository, "Хранилище данных", "Python / PostgreSQL", "Читает и сохраняет данные своего сервиса.")
+Component(access, "Проверка доступа", "Python", "Проверяет права владельца и выбранные модули.")
+Component(device, "Клиент реестра", "Python", "Проверяет принадлежность и возможности устройств сценария.")
+Component(dispatcher, "Выполнение действий", "Python", "Передаёт команду сервису нужного модуля от имени владельца дома.")
+}
+ContainerDb(database, "Сценарии: данные", "PostgreSQL", "Условия и действия сценариев.")
+Container(homes_api, "Пользователи и дома", "Python / FastAPI", "Пользователи, дома, выбранные модули и доступ.")
+Container(registry_api, "Реестр устройств", "Python / FastAPI", "Каталог модулей, самостоятельное подключение и интеграция устройств.")
+Container(heating_api, "Отопление", "Python / FastAPI", "Управление отоплением и его состояние.")
+Rel(api, processor, "Передаёт запрос")
+Rel(consumer, processor, "Запускает обработку")
+Rel(processor, repository, "Читает и сохраняет данные")
+Rel(repository, database, "Читает и записывает", "SQL")
+Rel(processor, access, "Проверяет доступ и модуль")
+Rel(access, homes_api, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(processor, device, "Проверяет устройства правила")
+Rel(device, registry_api, "Проверяет устройства правила", "HTTP / JSON")
+Rel(processor, dispatcher, "Выполняет действие сценария")
+Rel(dispatcher, heating_api, "Передаёт команду отопления", "HTTP / JSON")
+Container(lighting_api, "Освещение", "Python / FastAPI", "Включение и выключение света.")
+Container(gates_api, "Ворота", "Python / FastAPI", "Запирание и отпирание ворот.")
+ContainerQueue(events, "События телеметрии", "RabbitMQ", "TelemetryUpdated.")
+Rel(events, consumer, "Доставляет TelemetryUpdated", "AMQP")
+Rel(dispatcher, lighting_api, "Передаёт команду освещения", "HTTP / JSON")
+Rel(dispatcher, gates_api, "Передаёт команду воротам", "HTTP / JSON")
+SHOW_LEGEND()
+@enduml

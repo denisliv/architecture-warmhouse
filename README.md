@@ -76,19 +76,69 @@
 
 # Задание 2. Проектирование микросервисной архитектуры
 
-В этом задании вам нужно предоставить только диаграммы в модели C4. Мы не просим вас отдельно описывать получившиеся микросервисы и то, как вы определили взаимодействия между компонентами To-Be системы. Если вы правильно подготовите диаграммы C4, они и так это покажут.
-
 **Диаграмма контейнеров (Containers)**
 
-Добавьте диаграмму.
+![Целевая архитектура](docs/diagrams/to-be-containers.png)
 
-**Диаграмма компонентов (Components)**
+[PlantUML](docs/diagrams/to-be-containers.puml).
 
-Добавьте диаграмму для каждого из выделенных микросервисов.
+**Диаграммы компонентов (Components)**
+
+Пользователи и дома:
+
+![Пользователи и дома: компоненты](docs/diagrams/to-be-components-homes.png)
+
+[PlantUML](docs/diagrams/to-be-components-homes.puml).
+
+Реестр устройств:
+
+![Реестр устройств: компоненты](docs/diagrams/to-be-components-registry.png)
+
+[PlantUML](docs/diagrams/to-be-components-registry.puml).
+
+Отопление:
+
+![Отопление: компоненты](docs/diagrams/to-be-components-heating.png)
+
+[PlantUML](docs/diagrams/to-be-components-heating.puml).
+
+Освещение:
+
+![Освещение: компоненты](docs/diagrams/to-be-components-lighting.png)
+
+[PlantUML](docs/diagrams/to-be-components-lighting.puml).
+
+Ворота:
+
+![Ворота: компоненты](docs/diagrams/to-be-components-gates.png)
+
+[PlantUML](docs/diagrams/to-be-components-gates.puml).
+
+Видеонаблюдение:
+
+![Видеонаблюдение: компоненты](docs/diagrams/to-be-components-surveillance.png)
+
+[PlantUML](docs/diagrams/to-be-components-surveillance.puml).
+
+Телеметрия:
+
+![Телеметрия: компоненты](docs/diagrams/to-be-components-telemetry.png)
+
+[PlantUML](docs/diagrams/to-be-components-telemetry.puml).
+
+Сценарии:
+
+![Сценарии: компоненты](docs/diagrams/to-be-components-scenarios.png)
+
+[PlantUML](docs/diagrams/to-be-components-scenarios.puml).
 
 **Диаграмма кода (Code)**
 
-Добавьте одну диаграмму или несколько.
+Компонент «Обработчик команд отопления»:
+
+![Классы обработчика команд отопления](docs/diagrams/to-be-code-heating-command.png)
+
+[PlantUML](docs/diagrams/to-be-code-heating-command.puml).
 
 # Задание 3. Разработка ER-диаграммы
 

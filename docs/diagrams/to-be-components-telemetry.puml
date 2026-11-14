@@ -1,0 +1,29 @@
+@startuml to-be-components-telemetry
+!include <C4/C4_Component>
+LAYOUT_LEFT_RIGHT()
+title Тёплый дом — C4 Components: Телеметрия
+Container_Boundary(service, "Телеметрия — Python / FastAPI") {
+Component(api, "HTTP API", "Python / FastAPI", "Принимает запросы и возвращает ответы.")
+Component(processor, "Обработка телеметрии", "Python", "Получает и сохраняет измерения, выдаёт данные доступного дома и публикует обновления.")
+Component(scheduler, "Планировщик опроса", "Python", "Периодически запускает сбор показаний.")
+Component(repository, "Хранилище данных", "Python / PostgreSQL", "Читает и сохраняет данные своего сервиса.")
+Component(access, "Проверка доступа", "Python", "Проверяет доступ при чтении телеметрии.")
+Component(device, "Клиент датчиков", "Python", "Получает подключённые датчики и их показания.")
+Component(publisher, "Публикация событий", "Python", "Публикует обновление после сохранения измерения.")
+}
+ContainerDb(database, "Телеметрия: данные", "PostgreSQL", "Измерения, единицы и время получения.")
+Container(homes_api, "Пользователи и дома", "Python / FastAPI", "Пользователи, дома, выбранные модули и доступ.")
+Container(registry_api, "Реестр устройств", "Python / FastAPI", "Каталог модулей, самостоятельное подключение и интеграция устройств.")
+ContainerQueue(events, "События телеметрии", "RabbitMQ", "TelemetryUpdated.")
+Rel(api, processor, "Передаёт запрос")
+Rel(scheduler, processor, "Запускает обработку")
+Rel(processor, repository, "Читает и сохраняет данные")
+Rel(repository, database, "Читает и записывает", "SQL")
+Rel(processor, access, "Проверяет доступ и модуль")
+Rel(access, homes_api, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(processor, device, "Запрашивает показания")
+Rel(device, registry_api, "Запрашивает показания", "HTTP / JSON")
+Rel(processor, publisher, "Публикует TelemetryUpdated")
+Rel(publisher, events, "Публикует TelemetryUpdated", "AMQP")
+SHOW_LEGEND()
+@enduml

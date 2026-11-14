@@ -1,0 +1,19 @@
+@startuml to-be-components-homes
+!include <C4/C4_Component>
+LAYOUT_LEFT_RIGHT()
+title Тёплый дом — C4 Components: Пользователи и дома
+Container_Boundary(service, "Пользователи и дома — Python / FastAPI") {
+Component(api, "HTTP API", "Python / FastAPI", "Принимает запросы и возвращает ответы.")
+Component(processor, "Управление пользователями и домами", "Python", "Связывает пользователей, дома и выбранные модули; проверяет доступ.")
+Component(repository, "Хранилище данных", "Python / PostgreSQL", "Читает и сохраняет данные своего сервиса.")
+Component(catalog, "Клиент каталога модулей", "Python", "Получает доступные модули и проверяет выбор пользователя.")
+}
+ContainerDb(database, "Пользователи и дома: данные", "PostgreSQL", "Пользователи, дома и выбранные модули.")
+Container(registry_api, "Реестр устройств", "Python / FastAPI", "Каталог модулей, самостоятельное подключение и интеграция устройств.")
+Rel(api, processor, "Передаёт запрос")
+Rel(processor, repository, "Читает и сохраняет данные")
+Rel(repository, database, "Читает и записывает", "SQL")
+Rel(processor, catalog, "Проверяет выбранный модуль")
+Rel(catalog, registry_api, "Проверяет выбранный модуль", "HTTP / JSON")
+SHOW_LEGEND()
+@enduml

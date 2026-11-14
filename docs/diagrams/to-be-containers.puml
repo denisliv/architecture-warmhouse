@@ -1,0 +1,77 @@
+@startuml to-be-containers
+!include <C4/C4_Container>
+LAYOUT_TOP_DOWN()
+skinparam nodesep 35
+skinparam ranksep 65
+title Тёплый дом — C4 Containers: целевая архитектура (To-Be)
+Person(user, "Пользователь", "Управляет своим домом.")
+System_Boundary(platform, "Тёплый дом") {
+Container(web, "Веб-интерфейс", "Web application", "Настройка модулей, управление и наблюдение.")
+Container(gateway, "API Gateway", "Nginx", "Направляет запросы в нужный сервис.")
+Container(homes, "Пользователи и дома", "Python / FastAPI", "Пользователи, дома, выбранные модули и доступ.")
+ContainerDb(homes_db, "Пользователи и дома: данные", "PostgreSQL", "Пользователи, дома и выбранные модули.")
+Container(registry, "Реестр устройств", "Python / FastAPI", "Каталог модулей, самостоятельное подключение и интеграция устройств.")
+ContainerDb(registry_db, "Реестр устройств: данные", "PostgreSQL", "Модули, типы устройств и подключения к домам.")
+Container(heating, "Отопление", "Python / FastAPI", "Управление отоплением и его состояние.")
+ContainerDb(heating_db, "Отопление: данные", "PostgreSQL", "Состояние отопления.")
+Container(lighting, "Освещение", "Python / FastAPI", "Включение и выключение света.")
+ContainerDb(lighting_db, "Освещение: данные", "PostgreSQL", "Состояние освещения.")
+Container(gates, "Ворота", "Python / FastAPI", "Запирание и отпирание ворот.")
+ContainerDb(gates_db, "Ворота: данные", "PostgreSQL", "Состояние ворот.")
+Container(surveillance, "Видеонаблюдение", "Python / FastAPI", "Проверка доступа и передача видеопотока.")
+Container(telemetry, "Телеметрия", "Python / FastAPI", "Сбор, хранение и выдача измерений.")
+ContainerDb(telemetry_db, "Телеметрия: данные", "PostgreSQL", "Измерения, единицы и время получения.")
+Container(scenarios, "Сценарии", "Python / FastAPI", "Настройка и выполнение правил автоматизации.")
+ContainerDb(scenarios_db, "Сценарии: данные", "PostgreSQL", "Условия и действия сценариев.")
+ContainerQueue(events, "События телеметрии", "RabbitMQ", "TelemetryUpdated для сценариев.")
+}
+System_Ext(devices, "Устройства партнёров", "Датчики, отопление, свет, ворота и камеры.")
+Rel(user, web, "Использует", "HTTPS")
+Rel(web, gateway, "Запрашивает данные и видео", "HTTPS / JSON, media")
+Rel(gateway, homes, "Вызывает API", "HTTP / JSON")
+Rel(gateway, registry, "Вызывает API", "HTTP / JSON")
+Rel(gateway, heating, "Вызывает API", "HTTP / JSON")
+Rel(gateway, lighting, "Вызывает API", "HTTP / JSON")
+Rel(gateway, gates, "Вызывает API", "HTTP / JSON")
+Rel(gateway, surveillance, "Запрашивает просмотр", "HTTP / JSON, media")
+Rel(gateway, telemetry, "Вызывает API", "HTTP / JSON")
+Rel(gateway, scenarios, "Вызывает API", "HTTP / JSON")
+Rel_R(homes, homes_db, "Читает и записывает", "SQL")
+Rel_R(registry, registry_db, "Читает и записывает", "SQL")
+Rel_R(heating, heating_db, "Читает и записывает", "SQL")
+Rel_R(lighting, lighting_db, "Читает и записывает", "SQL")
+Rel_R(gates, gates_db, "Читает и записывает", "SQL")
+Rel_R(telemetry, telemetry_db, "Читает и записывает", "SQL")
+Rel_R(scenarios, scenarios_db, "Читает и записывает", "SQL")
+Rel(registry, homes, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(heating, homes, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(lighting, homes, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(gates, homes, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(surveillance, homes, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(telemetry, homes, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(scenarios, homes, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(homes, registry, "Проверяет выбранный модуль", "HTTP / JSON")
+Rel(heating, registry, "Передаёт команды", "HTTP / JSON")
+Rel(lighting, registry, "Передаёт команды", "HTTP / JSON")
+Rel(gates, registry, "Передаёт команды", "HTTP / JSON")
+Rel(surveillance, registry, "Получает параметры камеры", "HTTP / JSON")
+Rel(scenarios, registry, "Проверяет устройства правила", "HTTP / JSON")
+Rel(telemetry, registry, "Запрашивает показания", "HTTP / JSON")
+Rel(telemetry, events, "Публикует TelemetryUpdated", "AMQP")
+Rel(events, scenarios, "Доставляет TelemetryUpdated", "AMQP")
+Rel(scenarios, heating, "Выполняет действие", "HTTP / JSON")
+Rel(scenarios, lighting, "Выполняет действие", "HTTP / JSON")
+Rel(scenarios, gates, "Выполняет действие", "HTTP / JSON")
+Rel(registry, devices, "Подключает, опрашивает и управляет", "HTTPS / API партнёра")
+Rel(surveillance, devices, "Получает видеопоток", "HTTPS / media")
+note as storage
+Каждая БД принадлежит своему сервису.
+Базы могут работать на одном сервере PostgreSQL.
+Видеонаблюдение передаёт поток без записи.
+end note
+note right of registry
+Новые типы устройств добавляются в каталог,
+новые протоколы — через адаптеры.
+end note
+SHOW_LEGEND()
+@enduml
