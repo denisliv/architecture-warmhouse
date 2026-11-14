@@ -1,0 +1,23 @@
+@startuml to-be-components-registry
+!include <C4/C4_Component>
+LAYOUT_LEFT_RIGHT()
+title Тёплый дом — C4 Components: Реестр устройств
+Container_Boundary(service, "Реестр устройств — Python / FastAPI") {
+Component(api, "HTTP API", "Python / FastAPI", "Принимает запросы и возвращает ответы.")
+Component(processor, "Управление устройствами", "Python", "Подключает устройства к дому, проверяет тип и возможности; направляет команды и запросы показаний.")
+Component(repository, "Хранилище данных", "Python / PostgreSQL", "Читает и сохраняет данные своего сервиса.")
+Component(access, "Проверка доступа", "Python", "Проверяет дом и выбранный модуль.")
+Component(partner, "Адаптеры протоколов", "Python", "Связываются с устройствами; позволяют добавлять новые протоколы.")
+}
+ContainerDb(database, "Реестр устройств: данные", "PostgreSQL", "Модули, типы устройств и подключения к домам.")
+Container(homes_api, "Пользователи и дома", "Python / FastAPI", "Пользователи, дома, выбранные модули и доступ.")
+System_Ext(devices, "Устройства партнёров", "Датчики и исполнительные устройства.")
+Rel(api, processor, "Передаёт запрос")
+Rel(processor, repository, "Читает и сохраняет данные")
+Rel(repository, database, "Читает и записывает", "SQL")
+Rel(processor, access, "Проверяет доступ и модуль")
+Rel(access, homes_api, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(processor, partner, "Подключает, опрашивает и управляет")
+Rel(partner, devices, "Подключает, опрашивает и управляет", "HTTPS / API партнёра")
+SHOW_LEGEND()
+@enduml

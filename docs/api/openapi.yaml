@@ -1,0 +1,451 @@
+openapi: 3.0.3
+info:
+  title: Тёплый дом — API
+  version: 1.0.0
+  description: >-
+    Пять REST-операций сервисов «Пользователи и дома», «Реестр устройств»,
+    «Отопление» и «Телеметрия». Пути доступны через API Gateway;
+    межсервисные вызовы используют API соответствующего сервиса.
+servers:
+  - url: /api/v1
+    description: API Gateway
+security:
+  - bearerAuth: []
+tags:
+  - name: Пользователи и дома
+  - name: Реестр устройств
+  - name: Отопление
+  - name: Телеметрия
+
+paths:
+  /houses/{house_id}:
+    get:
+      tags: [Пользователи и дома]
+      operationId: getHouse
+      summary: Получить дом и выбранные модули
+      description: >-
+        Возвращает дом, доступный пользователю, и выбранные для него модули.
+        Реестр устройств и сервисы управления используют эти данные
+        для проверки доступа и подключения нужного модуля.
+      parameters:
+        - $ref: '#/components/parameters/HouseId'
+      responses:
+        '200':
+          description: Дом и выбранные модули
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/House'
+              examples:
+                house:
+                  value:
+                    id: '11111111-1111-4111-8111-111111111111'
+                    user_id: '22222222-2222-4222-8222-222222222222'
+                    name: Загородный дом
+                    module_ids: ['33333333-3333-4333-8333-333333333333']
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /devices/{device_id}:
+    get:
+      tags: [Реестр устройств]
+      operationId: getDevice
+      summary: Получить устройство
+      description: >-
+        Возвращает устройство доступного пользователю дома.
+        module_id определяется по типу устройства.
+        Другие сервисы получают через этот API принадлежность устройства,
+        его модуль и параметры подключения.
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+      responses:
+        '200':
+          description: Устройство
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                temperatureSensor:
+                  value:
+                    id: '55555555-5555-4555-8555-555555555555'
+                    type_id: '44444444-4444-4444-8444-444444444444'
+                    house_id: '11111111-1111-4111-8111-111111111111'
+                    module_id: '33333333-3333-4333-8333-333333333333'
+                    serial_number: TEMP-001
+                    connection_url: https://devices.example.com/sensors/TEMP-001
+                    connection_status: CONNECTED
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /houses/{house_id}/devices:
+    post:
+      tags: [Реестр устройств]
+      operationId: registerDevice
+      summary: Подключить устройство к дому
+      description: >-
+        Проверяет доступ к дому, выбранный модуль и тип устройства.
+        Регистрирует устройство и его параметры подключения.
+        Устройство с теми же type_id и serial_number повторно не регистрируется.
+      parameters:
+        - $ref: '#/components/parameters/HouseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceRegistration'
+            examples:
+              temperatureSensor:
+                value:
+                  type_id: '44444444-4444-4444-8444-444444444444'
+                  serial_number: TEMP-001
+                  connection_url: https://devices.example.com/sensors/TEMP-001
+      responses:
+        '201':
+          description: Устройство зарегистрировано
+          headers:
+            Location:
+              description: Путь к созданному устройству
+              schema:
+                type: string
+              example: /api/v1/devices/55555555-5555-4555-8555-555555555555
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              examples:
+                registeredDevice:
+                  value:
+                    id: '55555555-5555-4555-8555-555555555555'
+                    type_id: '44444444-4444-4444-8444-444444444444'
+                    house_id: '11111111-1111-4111-8111-111111111111'
+                    module_id: '33333333-3333-4333-8333-333333333333'
+                    serial_number: TEMP-001
+                    connection_url: https://devices.example.com/sensors/TEMP-001
+                    connection_status: DISCONNECTED
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: Устройство уже зарегистрировано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                duplicateDevice:
+                  value:
+                    code: DEVICE_ALREADY_REGISTERED
+                    message: Устройство с указанными типом и серийным номером уже зарегистрировано.
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /houses/{house_id}/heating/commands:
+    post:
+      tags: [Отопление]
+      operationId: sendHeatingCommand
+      summary: Включить или выключить отопление
+      description: >-
+        Проверяет доступ к дому, выбранный модуль отопления, принадлежность
+        устройства дому и поддержку команды. Передаёт команду через Реестр устройств.
+        Возвращает 200 и сохраняет новое состояние только после подтверждения
+        выполнения устройством. При тайм-ауте результат выполнения неизвестен,
+        последнее подтверждённое состояние не заменяется.
+      parameters:
+        - $ref: '#/components/parameters/HouseId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeatingCommand'
+            examples:
+              turnOn:
+                value:
+                  device_id: '66666666-6666-4666-8666-666666666666'
+                  action: TURN_ON
+      responses:
+        '200':
+          description: Выполнение команды подтверждено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeatingCommandResult'
+              examples:
+                heatingOn:
+                  value:
+                    device_id: '66666666-6666-4666-8666-666666666666'
+                    state: 'ON'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+        '502':
+          description: Ошибка взаимодействия с устройством
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                deviceError:
+                  value:
+                    code: DEVICE_ERROR
+                    message: Не удалось выполнить команду через API устройства.
+        '504':
+          description: Не получено подтверждение выполнения команды
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                timeout:
+                  value:
+                    code: DEVICE_TIMEOUT
+                    message: Устройство не подтвердило выполнение команды за отведённое время.
+
+  /devices/{device_id}/telemetry/latest:
+    get:
+      tags: [Телеметрия]
+      operationId: getLatestTelemetry
+      summary: Получить последнее измерение
+      description: >-
+        Проверяет доступ к дому устройства. Возвращает последнее сохранённое
+        измерение выбранной метрики без синхронного опроса датчика.
+        Если устройство или измерение не найдены, возвращает 404.
+      parameters:
+        - $ref: '#/components/parameters/DeviceId'
+        - name: metric
+          in: query
+          required: true
+          description: Название измеряемой метрики
+          schema:
+            type: string
+            minLength: 1
+          examples:
+            temperature:
+              value: temperature
+      responses:
+        '200':
+          description: Последнее сохранённое измерение
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TelemetryData'
+              examples:
+                temperature:
+                  value:
+                    id: '77777777-7777-4777-8777-777777777777'
+                    device_id: '55555555-5555-4555-8555-555555555555'
+                    metric: temperature
+                    value: 21.5
+                    unit: °C
+                    measured_at: '2026-11-14T15:30:00Z'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Идентификатор пользователя берётся из проверенного контекста Bearer-токена.
+  parameters:
+    HouseId:
+      name: house_id
+      in: path
+      required: true
+      description: Идентификатор дома
+      schema:
+        type: string
+        format: uuid
+      examples:
+        house:
+          value: '11111111-1111-4111-8111-111111111111'
+    DeviceId:
+      name: device_id
+      in: path
+      required: true
+      description: Идентификатор устройства
+      schema:
+        type: string
+        format: uuid
+      examples:
+        temperatureSensor:
+          value: '55555555-5555-4555-8555-555555555555'
+  schemas:
+    House:
+      type: object
+      required: [id, user_id, name, module_ids]
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        module_ids:
+          type: array
+          description: Выбранные модули из HouseModule
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+    DeviceRegistration:
+      type: object
+      required: [type_id, serial_number, connection_url]
+      properties:
+        type_id:
+          type: string
+          format: uuid
+        serial_number:
+          type: string
+          minLength: 1
+        connection_url:
+          type: string
+          format: uri
+    Device:
+      type: object
+      required: [id, type_id, house_id, module_id, serial_number, connection_url, connection_status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type_id:
+          type: string
+          format: uuid
+        house_id:
+          type: string
+          format: uuid
+        module_id:
+          type: string
+          format: uuid
+          description: Модуль из DeviceType
+        serial_number:
+          type: string
+        connection_url:
+          type: string
+          format: uri
+        connection_status:
+          type: string
+          enum: [CONNECTED, DISCONNECTED]
+    HeatingCommand:
+      type: object
+      required: [device_id, action]
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [TURN_ON, TURN_OFF]
+    HeatingCommandResult:
+      type: object
+      required: [device_id, state]
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: ['ON', 'OFF']
+    TelemetryData:
+      type: object
+      required: [id, device_id, metric, value, unit, measured_at]
+      properties:
+        id:
+          type: string
+          format: uuid
+        device_id:
+          type: string
+          format: uuid
+        metric:
+          type: string
+        value:
+          type: number
+        unit:
+          type: string
+        measured_at:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+  responses:
+    Unauthorized:
+      description: Отсутствует или недействителен токен пользователя
+      headers:
+        WWW-Authenticate:
+          schema:
+            type: string
+          example: Bearer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            unauthorized:
+              value:
+                code: UNAUTHORIZED
+                message: Требуется действительный Bearer-токен.
+    Forbidden:
+      description: Нет доступа к дому или не выбран необходимый модуль
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            forbidden:
+              value:
+                code: FORBIDDEN
+                message: Нет доступа к дому или необходимому модулю.
+    NotFound:
+      description: Запрошенный ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            notFound:
+              value:
+                code: NOT_FOUND
+                message: Запрошенный ресурс не найден.
+    ValidationError:
+      description: Некорректные параметры или тело запроса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            invalidRequest:
+              value:
+                code: VALIDATION_ERROR
+                message: Некорректный формат параметров или тела запроса.
+    InternalError:
+      description: Внутренняя ошибка сервиса
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            internalError:
+              value:
+                code: INTERNAL_ERROR
+                message: Внутренняя ошибка сервиса.

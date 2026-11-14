@@ -1,0 +1,23 @@
+@startuml to-be-components-surveillance
+!include <C4/C4_Component>
+LAYOUT_LEFT_RIGHT()
+title Тёплый дом — C4 Components: Видеонаблюдение
+Container_Boundary(service, "Видеонаблюдение — Python / FastAPI") {
+Component(api, "HTTP API", "Python / FastAPI", "Принимает запросы и возвращает ответы.")
+Component(processor, "Обработчик просмотра", "Python", "Проверяет доступ и принадлежность камеры дому; передаёт видеопоток пользователю.")
+Component(access, "Проверка доступа", "Python", "Проверяет права пользователя и модуль наблюдения.")
+Component(device, "Клиент реестра", "Python", "Получает тип, принадлежность и параметры камеры.")
+Component(stream, "Передача видеопотока", "Python", "Получает поток камеры и передаёт его без хранения записи.")
+}
+Container(homes_api, "Пользователи и дома", "Python / FastAPI", "Пользователи, дома, выбранные модули и доступ.")
+Container(registry_api, "Реестр устройств", "Python / FastAPI", "Каталог модулей, самостоятельное подключение и интеграция устройств.")
+System_Ext(camera, "Камера партнёра", "Источник видеопотока.")
+Rel(api, processor, "Передаёт запрос")
+Rel(processor, access, "Проверяет доступ и модуль")
+Rel(access, homes_api, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(processor, device, "Получает параметры камеры")
+Rel(device, registry_api, "Получает параметры камеры", "HTTP / JSON")
+Rel(processor, stream, "Получает видеопоток")
+Rel(stream, camera, "Получает видеопоток", "HTTPS / media")
+SHOW_LEGEND()
+@enduml

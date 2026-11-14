@@ -1,0 +1,53 @@
+@startuml to-be-code-heating-command
+title Тёплый дом — C4 Code: компонент «Обработчик команд отопления»
+hide empty members
+skinparam classAttributeIconSize 0
+
+package "Обработчик команд отопления — Python" <<component>> {
+  class SendHeatingCommand {
+    +execute(request: HeatingCommandRequest): HeatingCommandResult
+  }
+  class HeatingCommandRequest <<dataclass>> {
+    +user_id: UUID
+    +house_id: UUID
+    +device_id: UUID
+    +action: HeatingAction
+  }
+  class HeatingCommandResult <<dataclass>> {
+    +device_id: UUID
+    +state: HeatingState
+  }
+  enum HeatingAction {
+    TURN_ON
+    TURN_OFF
+  }
+  enum HeatingState {
+    ON
+    OFF
+  }
+  interface HomeAccessPort <<Protocol>> {
+    +ensure_heating_access(user_id: UUID, house_id: UUID): None
+  }
+  interface DeviceGatewayPort <<Protocol>> {
+    +execute(house_id: UUID, device_id: UUID, action: HeatingAction): HeatingState
+  }
+  interface HeatingRepositoryPort <<Protocol>> {
+    +save_state(device_id: UUID, state: HeatingState): None
+  }
+  HeatingCommandRequest ..> HeatingAction : допустимое действие
+  HeatingCommandResult ..> HeatingState : подтверждённое состояние
+  SendHeatingCommand ..> HeatingCommandRequest : принимает
+  SendHeatingCommand ..> HeatingCommandResult : возвращает
+  SendHeatingCommand ..> HomeAccessPort : проверяет доступ
+  SendHeatingCommand ..> DeviceGatewayPort : выполняет команду
+  SendHeatingCommand ..> HeatingRepositoryPort : сохраняет состояние
+}
+
+legend bottom
+  component — граница детализируемого компонента.
+  dataclass — данные запроса или результата.
+  Protocol — интерфейс исходящей зависимости.
+  enum — допустимые значения.
+  Пунктирная стрелка — зависимость класса.
+endlegend
+@enduml

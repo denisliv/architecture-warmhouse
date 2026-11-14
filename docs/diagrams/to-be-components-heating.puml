@@ -1,0 +1,23 @@
+@startuml to-be-components-heating
+!include <C4/C4_Component>
+LAYOUT_LEFT_RIGHT()
+title Тёплый дом — C4 Components: Отопление
+Container_Boundary(service, "Отопление — Python / FastAPI") {
+Component(api, "HTTP API", "Python / FastAPI", "Принимает запросы и возвращает ответы.")
+Component(processor, "Обработчик команд", "Python", "Проверяет доступ и устройство, выполняет команду и сохраняет подтверждённое состояние отопления.")
+Component(repository, "Хранилище данных", "Python / PostgreSQL", "Читает и сохраняет данные своего сервиса.")
+Component(access, "Проверка доступа", "Python", "Проверяет права пользователя и выбранный модуль.")
+Component(device, "Клиент устройств", "Python", "Проверяет устройство и передаёт команды в реестр.")
+}
+ContainerDb(database, "Отопление: данные", "PostgreSQL", "Состояние отопления.")
+Container(homes_api, "Пользователи и дома", "Python / FastAPI", "Пользователи, дома, выбранные модули и доступ.")
+Container(registry_api, "Реестр устройств", "Python / FastAPI", "Каталог модулей, самостоятельное подключение и интеграция устройств.")
+Rel(api, processor, "Передаёт запрос")
+Rel(processor, repository, "Читает и сохраняет данные")
+Rel(repository, database, "Читает и записывает", "SQL")
+Rel(processor, access, "Проверяет доступ и модуль")
+Rel(access, homes_api, "Проверяет доступ и модуль", "HTTP / JSON")
+Rel(processor, device, "Проверяет устройство и передаёт команду")
+Rel(device, registry_api, "Проверяет устройство и передаёт команду", "HTTP / JSON")
+SHOW_LEGEND()
+@enduml
