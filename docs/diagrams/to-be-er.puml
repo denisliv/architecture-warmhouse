@@ -1,0 +1,140 @@
+@startuml to-be-er
+title Тёплый дом — логическая ER-диаграмма
+hide circle
+skinparam linetype polyline
+skinparam nodesep 35
+skinparam ranksep 55
+
+package "Пользователи и дома" {
+  entity "Пользователь\nUser" as User {
+    * id : UUID <<PK>>
+    --
+    * name : varchar
+    * email : varchar
+  }
+  entity "Дом\nHouse" as House {
+    * id : UUID <<PK>>
+    --
+    * user_id : UUID <<FK>>
+    * name : varchar
+  }
+  entity "Выбранный модуль\nHouseModule" as HouseModule {
+    * house_id : UUID <<PK, FK>>
+    * module_id : UUID <<PK, ref>>
+  }
+}
+
+package "Реестр устройств" {
+  entity "Модуль\nModule" as Module {
+    * id : UUID <<PK>>
+    --
+    * name : varchar
+  }
+  entity "Тип устройства\nDeviceType" as DeviceType {
+    * id : UUID <<PK>>
+    --
+    * module_id : UUID <<FK>>
+    * name : varchar
+    * protocol : varchar
+  }
+  entity "Устройство\nDevice" as Device {
+    * id : UUID <<PK>>
+    --
+    * type_id : UUID <<FK>>
+    * house_id : UUID <<ref>>
+    * serial_number : varchar
+    * connection_url : varchar
+    * connection_status : varchar
+  }
+}
+
+package "Телеметрия" {
+  entity "Измерение\nTelemetryData" as TelemetryData {
+    * id : UUID <<PK>>
+    --
+    * device_id : UUID <<ref>>
+    * metric : varchar
+    * value : numeric
+    * unit : varchar
+    * measured_at : timestamptz
+  }
+}
+
+package "Отопление" {
+  entity "Состояние отопления\nHeatingState" as HeatingState {
+    * device_id : UUID <<PK, ref>>
+    --
+    * state : varchar
+    * updated_at : timestamptz
+  }
+}
+
+package "Освещение" {
+  entity "Состояние освещения\nLightingState" as LightingState {
+    * device_id : UUID <<PK, ref>>
+    --
+    * state : varchar
+    * updated_at : timestamptz
+  }
+}
+
+package "Ворота" {
+  entity "Состояние ворот\nGateState" as GateState {
+    * device_id : UUID <<PK, ref>>
+    --
+    * state : varchar
+    * updated_at : timestamptz
+  }
+}
+
+package "Сценарии" {
+  entity "Сценарий\nScenario" as Scenario {
+    * id : UUID <<PK>>
+    --
+    * house_id : UUID <<ref>>
+    * name : varchar
+    * enabled : boolean
+  }
+  entity "Условие\nScenarioCondition" as ScenarioCondition {
+    * id : UUID <<PK>>
+    --
+    * scenario_id : UUID <<FK>>
+    * sensor_device_id : UUID <<ref>>
+    * metric : varchar
+    * comparison_operator : varchar
+    * threshold : numeric
+  }
+  entity "Действие\nScenarioAction" as ScenarioAction {
+    * id : UUID <<PK>>
+    --
+    * scenario_id : UUID <<FK>>
+    * target_device_id : UUID <<ref>>
+    * command : varchar
+  }
+}
+
+User ||--o{ House : владеет
+House ||--o{ HouseModule : выбирает модули
+Module ||..o{ HouseModule : доступен домам
+Module ||--o{ DeviceType : включает типы
+DeviceType ||--o{ Device : определяет тип
+House ||..o{ Device : содержит
+Device ||..o{ TelemetryData : формирует измерения
+Device ||..o| HeatingState : состояние отопления
+Device ||..o| LightingState : состояние света
+Device ||..o| GateState : состояние ворот
+House ||..o{ Scenario : содержит сценарии
+Scenario ||--|{ ScenarioCondition : содержит условия
+Scenario ||--|{ ScenarioAction : содержит действия
+Device ||..o{ ScenarioCondition : источник показаний
+Device ||..o{ ScenarioAction : исполнитель команды
+
+legend bottom
+  Группы показывают принадлежность данных сервисам.
+  PK — первичный ключ; FK — внешний ключ внутри БД сервиса.
+  ref и пунктир — логическая ссылка по ID в другой сервис.
+  * — обязательный атрибут.
+  || — один; o| — ноль или один.
+  o{ — ноль или несколько; |{ — один или несколько.
+endlegend
+@enduml
