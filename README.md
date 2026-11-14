@@ -164,59 +164,34 @@
 | Отопление | `POST /houses/{house_id}/heating/commands` | Включение и выключение отопления |
 | Телеметрия | `GET /devices/{device_id}/telemetry/latest` | Последнее измерение выбранной метрики |
 
-# Задание 5. Работа с docker и docker-compose
+# Задание 5. Работа с Docker и Docker Compose
 
-Перейдите в apps.
+Приложение [`temperature-api`](apps/temperature-api/main.py) имитирует удалённый датчик: при каждом запросе генерирует новое значение температуры от 18 до 30 °C.
 
-Там находится приложение-монолит для работы с датчиками температуры. В README.md описано как запустить решение.
+Поддерживаются два варианта запроса:
 
-Вам нужно:
+- `GET /temperature?location=Living%20Room` — по названию комнаты.
+- `GET /temperature/1` — по идентификатору датчика.
 
-1) сделать простое приложение temperature-api на любом удобном для вас языке программирования, которое при запросе /temperature?location= будет отдавать рандомное значение температуры.
+Соответствия комнат: `1` — Living Room, `2` — Bedroom, `3` — Kitchen. Неизвестному идентификатору соответствует `Unknown`, неизвестной комнате — идентификатор `0`.
 
-Locations - название комнаты, sensorId - идентификатор названия комнаты
+Ответ содержит `value`, `unit`, `timestamp`, `location`, `status`, `sensor_id`, `sensor_type` и `description`.
 
-```
-	// If no location is provided, use a default based on sensor ID
-	if location == "" {
-		switch sensorID {
-		case "1":
-			location = "Living Room"
-		case "2":
-			location = "Bedroom"
-		case "3":
-			location = "Kitchen"
-		default:
-			location = "Unknown"
-		}
-	}
+### Запуск
 
-	// If no sensor ID is provided, generate one based on location
-	if sensorID == "" {
-		switch location {
-		case "Living Room":
-			sensorID = "1"
-		case "Bedroom":
-			sensorID = "2"
-		case "Kitchen":
-			sensorID = "3"
-		default:
-			sensorID = "0"
-		}
-	}
+Скопируйте `apps/.env.example` в `apps/.env` и задайте `POSTGRES_PASSWORD` — случайный пароль из букв и цифр. Затем из каталога `apps` выполните:
+
+```bash
+docker compose up --build -d
 ```
 
-2) Приложение следует упаковать в Docker и добавить в docker-compose. Порт по умолчанию должен быть 8081
+Compose запускает PostgreSQL, `temperature-api` на порту `8081` и монолит на порту `8080`. При первом запуске PostgreSQL выполняет [`init.sql`](apps/smart_home/init.sql), который создаёт базу `smarthome` и таблицу `sensors`. Данные сохраняются в томе `postgres_data`.
 
-3) Кроме того для smart_home приложения требуется база данных - добавьте в docker-compose файл настройки для запуска postgres с указанием скрипта инициализации ./smart_home/init.sql
+### Проверка
 
-Для проверки можно использовать Postman коллекцию smarthome-api.postman_collection.json и вызвать:
+Импортируйте [`smarthome-api.postman_collection.json`](apps/smarthome-api.postman_collection.json) в Postman:
 
-- Create Sensor
-- Get All Sensors
+1. Выполните **Create Sensor**.
+2. Выполните **Get All Sensors** несколько раз — значение `value` температурного датчика будет обновляться при каждом запросе.
 
-Должно при каждом вызове отображаться разное значение температуры
-
-Ревьюер будет проверять точно так же.
-
-
+Для остановки выполните `docker compose down`.
